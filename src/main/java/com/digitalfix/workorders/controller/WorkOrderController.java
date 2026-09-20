@@ -23,7 +23,7 @@ public class WorkOrderController {
 
     @PostMapping
     public WorkOrder createOrder(@RequestBody WorkOrder order) {
-        // Aseguramos que siempre nazca como CREADA
+      
         order.setStatus(OrderStatus.CREADA);
         return repository.save(order);
     }
@@ -39,7 +39,6 @@ public class WorkOrderController {
     public ResponseEntity<?> updateOrderStatus(@PathVariable Long id, @RequestBody WorkOrder statusUpdate) {
         return repository.findById(id).map(order -> {
             
-            // Regla de Negocio: No se puede ejecutar sin estar asignada
             if (statusUpdate.getStatus() == OrderStatus.EN_EJECUCION && order.getTechnician() == null) {
                 return ResponseEntity.badRequest().body("Error: No se puede pasar a EN_EJECUCION sin asignar un técnico antes.");
             }
