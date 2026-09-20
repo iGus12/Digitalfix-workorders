@@ -15,12 +15,11 @@ public class WorkOrder {
     private String description;
 
     @Enumerated(EnumType.STRING)
-    private OrderStatus status = OrderStatus.CREADA; // Valor por defecto
+    private OrderStatus status = OrderStatus.CREADA; 
 
     private String technician;
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    // Getters y Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public String getClientName() { return clientName; }
