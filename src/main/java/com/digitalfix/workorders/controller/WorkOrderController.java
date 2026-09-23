@@ -23,10 +23,11 @@ public class WorkOrderController {
 
     @PostMapping
     public WorkOrder createOrder(@RequestBody WorkOrder order) {
-      
+        if (order.getStatus() == null) {
         order.setStatus(OrderStatus.CREADA);
+        }
         return repository.save(order);
-    }
+}
 
     @GetMapping("/{id}")
     public ResponseEntity<WorkOrder> getOrderById(@PathVariable Long id) {
