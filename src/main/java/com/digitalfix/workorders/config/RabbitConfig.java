@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitConfig {
 
-    // Lectura de variables centralizadas
+    // variables centralizadas
     @Value("${rabbitmq.exchange.main}")
     private String exchangeMain;
     
@@ -27,7 +27,7 @@ public class RabbitConfig {
     @Value("${rabbitmq.routing.dlq}")
     private String routingDlq;
 
-    // 1. EXCHANGES
+    // 1 exchanges
     @Bean
     public DirectExchange mainExchange() {
         return new DirectExchange(exchangeMain);
@@ -38,7 +38,7 @@ public class RabbitConfig {
         return new DirectExchange(exchangeDlx);
     }
 
-    // 2. QUEUES (Cola de trabajo conectada a la DLQ para errores)
+    // 2 queues
     @Bean
     public Queue workordersQueue() {
         return QueueBuilder.durable(queueWorkorders)
@@ -52,7 +52,7 @@ public class RabbitConfig {
         return QueueBuilder.durable(queueDlq).build();
     }
 
-    // 3. BINDINGS (Reglas de enrutamiento)
+    // 3 bindings
     @Bean
     public Binding bindingWorkorders() {
         return BindingBuilder.bind(workordersQueue()).to(mainExchange()).with(routingWorkorders);
