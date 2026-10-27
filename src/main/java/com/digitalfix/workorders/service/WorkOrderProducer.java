@@ -1,3 +1,4 @@
+
 package com.digitalfix.workorders.service;
 
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -11,16 +12,45 @@ public class WorkOrderProducer {
     @Autowired
     private RabbitTemplate rabbitTemplate;
 
-    // Leemos el exchange y la ruta desde el properties
+    // Configuración existente de Workorders
     @Value("${rabbitmq.exchange.main}")
     private String exchangeMain;
 
     @Value("${rabbitmq.routing.workorders}")
     private String routingWorkorders;
 
-    // Método que enviará el mensaje
+    // Configuración del microservicio de Notificaciones
+    @Value("${rabbitmq.notificaciones.exchange}")
+    private String exchangeNotificaciones;
+
+    @Value("${rabbitmq.notificaciones.routing.gmail}")
+    private String routingGmail;
+
+    // Método original: se conserva
     public void notificarNuevaOrden(String mensaje) {
-        rabbitTemplate.convertAndSend(exchangeMain, routingWorkorders, mensaje);
-        System.out.println(" [x] Mensaje enviado a RabbitMQ: " + mensaje);
+        rabbitTemplate.convertAndSend(
+                exchangeMain,
+                routingWorkorders,
+                mensaje
+        );
+
+        System.out.println(
+                "[RabbitMQ] Mensaje enviado a Workorders: " + mensaje
+        );
+    }
+
+    // Nuevo método para enviar solicitudes a Notificaciones
+    public void enviarNotificacionGmail(String mensajeJson) {
+
+        rabbitTemplate.convertAndSend(
+                exchangeNotificaciones,
+                routingGmail,
+                mensajeJson
+        );
+
+        System.out.println(
+                "[RabbitMQ] Solicitud enviada a Notificaciones: "
+                + mensajeJson
+        );
     }
 }
