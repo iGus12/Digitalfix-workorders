@@ -1,3 +1,4 @@
+
 package com.digitalfix.workorders.controller;
 
 import com.digitalfix.workorders.entity.OrderStatus;
@@ -8,6 +9,9 @@ import com.digitalfix.workorders.service.WorkOrderProducer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.util.List;
 
@@ -27,17 +31,38 @@ public class WorkOrderController {
     }
 
     @PostMapping
-    public WorkOrder createOrder(@RequestBody WorkOrder order) {
+    public WorkOrder createOrder(
+            @RequestBody WorkOrder order,
+            @AuthenticationPrincipal Jwt jwt) {
+
+        String usuarioId = jwt.getSubject();
+
+        System.out.println(
+            "[Workorders] Orden solicitada por usuario: " + usuarioId
+        );
+
         if (order.getStatus() == null) {
             order.setStatus(OrderStatus.CREADA);
         }
-        
-        // 1. Guardar en la base de datos Oracle
+
+        // 1. Guardar la orden en Oracle
         WorkOrder savedOrder = repository.save(order);
-        
-        // 2. Disparar el evento asíncrono a RabbitMQ
-        workOrderProducer.notificarNuevaOrden("Nueva orden creada ID: " + savedOrder.getId());
-        
+
+        // 2. Mantener el evento original de RabbitMQ
+        workOrderProducer.notificarNuevaOrden(
+            "Nueva orden creada ID: " + savedOrder.getId()
+        );
+
+        // 3. Enviar la notificacion interna al usuario autenticado
+        String mensajeNotificacion = String.format(
+            "{\"usuarioId\":\"%s\",\"titulo\":\"Nueva orden de trabajo\",\"mensaje\":\"Se ha creado correctamente la orden de trabajo N.º %d\",\"ordenId\":%d}",
+            usuarioId,
+            savedOrder.getId(),
+            savedOrder.getId()
+        );
+
+        workOrderProducer.enviarNotificacionInterna(mensajeNotificacion);
+
         return savedOrder;
     }
 
@@ -49,25 +74,37 @@ public class WorkOrderController {
     }
 
     @PutMapping("/{id}/status")
-    public ResponseEntity<?> updateOrderStatus(@PathVariable Long id, @RequestBody WorkOrder statusUpdate) {
+    public ResponseEntity<?> updateOrderStatus(
+            @PathVariable Long id,
+            @RequestBody WorkOrder statusUpdate) {
+
         return repository.findById(id).map(order -> {
-            
-            if (statusUpdate.getStatus() == OrderStatus.EN_EJECUCION && order.getTechnician() == null) {
-                return ResponseEntity.badRequest().body("Error: No se puede pasar a EN_EJECUCION sin asignar un técnico antes.");
+
+            if (statusUpdate.getStatus() == OrderStatus.EN_EJECUCION
+                    && order.getTechnician() == null) {
+
+                return ResponseEntity.badRequest().body(
+                    "Error: No se puede pasar a EN_EJECUCION sin asignar un técnico antes."
+                );
             }
 
             order.setStatus(statusUpdate.getStatus());
+
             if (statusUpdate.getTechnician() != null) {
                 order.setTechnician(statusUpdate.getTechnician());
             }
-            
-            // 1. Guardar la actualización en Oracle
+
+            // 1. Guardar la actualizacion en Oracle
             WorkOrder updatedOrder = repository.save(order);
-            
-            // 2. Disparar notificación de actualización a RabbitMQ
-            workOrderProducer.notificarNuevaOrden("Orden ID: " + updatedOrder.getId() + " cambió a estado: " + updatedOrder.getStatus());
-            
+
+            // 2. Mantener el evento original de RabbitMQ
+            workOrderProducer.notificarNuevaOrden(
+                "Orden ID: " + updatedOrder.getId()
+                + " cambió a estado: " + updatedOrder.getStatus()
+            );
+
             return ResponseEntity.ok(updatedOrder);
+
         }).orElse(ResponseEntity.notFound().build());
     }
 }

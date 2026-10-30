@@ -12,21 +12,24 @@ public class WorkOrderProducer {
     @Autowired
     private RabbitTemplate rabbitTemplate;
 
-    // Configuración existente de Workorders
+    // Configuracion existente de Workorders
     @Value("${rabbitmq.exchange.main}")
     private String exchangeMain;
 
     @Value("${rabbitmq.routing.workorders}")
     private String routingWorkorders;
 
-    // Configuración del microservicio de Notificaciones
+    // Configuracion del microservicio de Notificaciones
     @Value("${rabbitmq.notificaciones.exchange}")
     private String exchangeNotificaciones;
 
     @Value("${rabbitmq.notificaciones.routing.gmail}")
     private String routingGmail;
 
-    // Método original: se conserva
+    @Value("${rabbitmq.notificaciones.routing.interna}")
+    private String routingInterna;
+
+    // Metodo original de Workorders
     public void notificarNuevaOrden(String mensaje) {
         rabbitTemplate.convertAndSend(
                 exchangeMain,
@@ -39,9 +42,8 @@ public class WorkOrderProducer {
         );
     }
 
-    // Nuevo método para enviar solicitudes a Notificaciones
+    // Metodo existente para solicitudes de correo
     public void enviarNotificacionGmail(String mensajeJson) {
-
         rabbitTemplate.convertAndSend(
                 exchangeNotificaciones,
                 routingGmail,
@@ -50,6 +52,20 @@ public class WorkOrderProducer {
 
         System.out.println(
                 "[RabbitMQ] Solicitud enviada a Notificaciones: "
+                + mensajeJson
+        );
+    }
+
+    // Nuevo metodo para notificaciones internas
+    public void enviarNotificacionInterna(String mensajeJson) {
+        rabbitTemplate.convertAndSend(
+                exchangeNotificaciones,
+                routingInterna,
+                mensajeJson
+        );
+
+        System.out.println(
+                "[RabbitMQ] Notificacion interna publicada: "
                 + mensajeJson
         );
     }
